@@ -1,3 +1,5 @@
+ATTRIBUTIONS FOR DATA TO BE ADDED VERY SOON, THIS PROJECT IS A WORK IN PROGRESS.
+
 # Breathe backend
 A modular fastAPI backend for retrieving air quality data across Jammu & Kashmir, used in the Breeze app, written in **Python**. Zone definitions and AQI breakpoints are stored in external JSON files, and endpoints are registered dynamically at startup.
 
