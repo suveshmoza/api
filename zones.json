@@ -7,14 +7,6 @@
     "lon": 74.819820,
     "zone_type": "urban"
   },
-  "srinagar_central": {
-    "id": "srinagar_central",
-    "name": "Srinagar City",
-    "provider": "openmeteo",
-    "lat": 34.0709,
-    "lon": 74.8122,
-    "zone_type": "urban"
-  },
   "jammu_gandhinagar": {
     "id": "jammu_gandhinagar",
     "name": "Gandhi Nagar",
