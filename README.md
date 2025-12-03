@@ -1,7 +1,5 @@
-ATTRIBUTIONS FOR DATA TO BE ADDED VERY SOON, THIS PROJECT IS A WORK IN PROGRESS.
-
 # Breathe backend
-A modular fastAPI backend for retrieving air quality data across Jammu & Kashmir, used in the **Breathe** app, written in **Python**. Zone definitions and AQI breakpoints are stored in external JSON files, and endpoints are registered dynamically at startup.
+A modular FastAPI backend designed to retrieve and standardize air quality data across the Jammu & Kashmir region for the **Breathe** app. The system aggregates data from multiple providers: **OpenMeteo** for satellite-based estimates in most districts and the **Central Pollution Control Board** (CPCB) for ground station data in Srinagar.
 
 ## Structure
 ```breathe/
@@ -18,15 +16,19 @@ A modular fastAPI backend for retrieving air quality data across Jammu & Kashmir
 
 ## Main modules
 - `main.py`
-  Creates the fastapi application and registers routes.
+  Initializes the FastAPI application and starts a background scheduler. This scheduler runs every 15 minutes to fetch fresh data for all zones, ensuring the app serves cached data instantly without hitting API rate limits during user requests.
 - `routes.py`
-  generates all `/aqi/<zone>` endpoints dynamically based on`zones.json`. also exposes `/aqi/zone/{zone_id}`.
+  Generates all `/aqi/<zone>` endpoints dynamically based on`zones.json`. Also exposes `/aqi/zone/{zone_id}`.
 - `fetchers.py`
    contains data fetch logic.
    `fetch_srinagar_gov` reads cpcb data from data.gov.in, plus temperature from openweather.
-   `fetch_jammu_openweather` reads air pollution + weather temperature from openweather.
+   `fetch_openmeteo_live` queries the OpenMeteo Air Quality API for real-time satellite-based pollutant data.
+   `get_zone_data` implements the caching strategy. it checks the internal server memory (RAM) first. If data is missing or older than 15 minutes, it fetches fresh data from the provider and updates the cache.
 - `conversions.py`
-  handles pollutant unit conversions, aqi calculation, breakpoints, and temperature corrections using the ideal gas law factor.
+  Handles the mathematics of AQI calculation.
+  - Converts Carbon Monoxide (CO) from µg/m³ to mg/m³ to match Indian standards.
+  - Maps raw concentrations to the official Indian CPCB sub-indices.
+  - Determines the final AQI based on the dominant pollutant.
 - `config.py`
   loads environment variables, zones.json, and aqi_breakpoints.json.
 - `zones.json`
@@ -46,7 +48,6 @@ set in `.env`:
 
 ```
 DATA_GOV_API_KEY=your_key
-OWM_API_KEY=your_key
 ```
 
 ## Running
@@ -54,24 +55,27 @@ From the `api` directory:
 `uvicorn main:app --reload`
 
 ## Endpoints
-Each zone in zones.json becomes an endpoint of the form:
-```/aqi/<zone_id>```
+- Zone-Specific Data: Access data for a specific zone using its ID (defined in `zones.json`):
+`GET /aqi/<zone_id>`
 
-`srinagar_gov` is also exposed as:
-```/aqi/srinagar```
+- Srinagar Special Endpoint:
+`GET /aqi/srinagar`
 
-A generic lookup is also available:
-```/aqi/zone/{zone_id}```
+- Generic Lookup:
+`GET /aqi/zone/{zone_id}`
 
-## How AQI calculation works
+- List All Zones:
+`GET /zones`
 
-`[1].` Pollutant concentrations (µg/m³) are fetched from cpcb or openweather.
+## How the AQI is Calculated
 
-`[2].` Real time temperature is fetched from openweather and used to adjust concentrations for gases (co, no2, so2, o3) using a temperature correction factor derived from the ideal gas law; `(temp_k / 298.15)`.
+`[1]` The system fetches raw pollutant concentrations (PM2.5, PM10, NO2, SO2, CO, O3) in µg/m³ from the relevant provider.
 
-`[3].` Corrected values are mapped to us AQI breakpoints.
+`[2]` While most pollutants remain in µg/m³, Carbon Monoxide (CO) is divided by 1000 to convert it to mg/m³, as required by the Indian AQI standard.
 
-`[4].` The highest pollutant AQI becomes the overall AQI.
+`[3]` The standardized values are compared against the CPCB breakpoint tables loaded from aqi_breakpoints.json. Linear interpolation is used to calculate the sub-index for each pollutant.
+
+`[4]` The overall AQI is determined by the highest (worst) sub-index among the available pollutants.
 
 ## Development
-Zone data and breakpoint data are fully external. Adding a new district or adjusting breakpoints requires no code changes, only JSON edits.
+The project is designed to be data-driven. Adding a new town or district does not require changing Python code; you simply add a new entry to `zones.json`. Similarly, if government standards change, updating `aqi_breakpoints.json` will instantly update the calculation logic across the entire application.

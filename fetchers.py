@@ -1,9 +1,13 @@
 import httpx
+import asyncio
+from datetime import datetime
 from fastapi import HTTPException
 from typing import Dict, Any
 
-from config import data_gov_api_key, owm_api_key, ZONES
+from config import data_gov_api_key, ZONES
 from conversions import calculate_overall_aqi
+
+_RAM_CACHE = {}
 
 async def fetch_srinagar_gov() -> Dict[str, Any]:
     if not data_gov_api_key:
@@ -27,7 +31,6 @@ async def fetch_srinagar_gov() -> Dict[str, Any]:
     data = r.json()
     records = data.get("records", [])
     if not records:
-        print(f"DEBUG RESPONSE: {data}") 
         raise HTTPException(status_code=404, detail="no cpcb data for srinagar found")
 
     raw_pollutants = {}
@@ -49,22 +52,7 @@ async def fetch_srinagar_gov() -> Dict[str, Any]:
         lat = float(rec.get("latitude")) if rec.get("latitude") else lat
         lon = float(rec.get("longitude")) if rec.get("longitude") else lon
 
-    temp_k = 298.15
-    if owm_api_key:
-        s_lat = ZONES["srinagar_gov"]["lat"]
-        s_lon = ZONES["srinagar_gov"]["lon"]
-        weather_url = "https://api.openweathermap.org/data/2.5/weather"
-        wparams = {"lat": s_lat, "lon": s_lon, "appid": owm_api_key}
-        try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                wr = await client.get(weather_url, params=wparams)
-            if wr.status_code == 200:
-                wdata = wr.json()
-                temp_k = wdata.get("main", {}).get("temp", temp_k)
-        except Exception:
-            temp_k = 298.15
-
-    aqi_data = calculate_overall_aqi(raw_pollutants, temp_k)
+    aqi_data = calculate_overall_aqi(raw_pollutants, zone_type="urban")
 
     return {
         "zone_id": "srinagar_gov",
@@ -75,46 +63,96 @@ async def fetch_srinagar_gov() -> Dict[str, Any]:
         **aqi_data
     }
 
-async def fetch_jammu_openweather(zone_id: str, zone_name: str, lat: float, lon: float):
-    if not owm_api_key:
-        raise HTTPException(status_code=500, detail="OWM_API_KEY not configured")
+async def fetch_openmeteo_live(lat: float, lon: float) -> Dict[str, float]:
+    url = "https://air-quality-api.open-meteo.com/v1/air-quality"
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": "pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,ozone",
+        "timezone": "auto",
+        "past_days": 1 
+    }
 
-    url = "https://api.openweathermap.org/data/2.5/air_pollution"
-    params = {"lat": lat, "lon": lon, "appid": owm_api_key}
-
-    temp_k = 298.15
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=20) as client:
         r = await client.get(url, params=params)
-
+        
         if r.status_code != 200:
-            raise HTTPException(status_code=502, detail="openweather request failed")
+            print(f"OpenMeteo Error: {r.text}")
+            raise HTTPException(status_code=502, detail="openmeteo request failed")
 
         data = r.json()
-        lst = data.get("list", [])
-        if not lst:
-            raise HTTPException(status_code=404, detail="no openweather aq data")
+        hourly = data.get("hourly", {})
+        times = hourly.get("time", [])
+        
+        if not times:
+            raise HTTPException(status_code=404, detail="no openmeteo aq data found")
 
-        entry = lst[0]
-        dt = entry.get("dt")
-        raw_comps = entry.get("components", {})
+        current_iso = datetime.now().strftime("%Y-%m-%dT%H:00")
+        target_idx = -1
+        
+        if current_iso in times:
+            target_idx = times.index(current_iso)
 
-        weather_url = "https://api.openweathermap.org/data/2.5/weather"
-        wparams = {"lat": lat, "lon": lon, "appid": owm_api_key}
-        try:
-            wr = await client.get(weather_url, params=wparams)
-            if wr.status_code == 200:
-                wdata = wr.json()
-                temp_k = wdata.get("main", {}).get("temp", temp_k)
-        except Exception:
-            temp_k = 298.15
+        raw_comps = {
+            "pm10": hourly.get("pm10", [])[target_idx],
+            "pm2_5": hourly.get("pm2_5", [])[target_idx],
+            "no2": hourly.get("nitrogen_dioxide", [])[target_idx],
+            "so2": hourly.get("sulphur_dioxide", [])[target_idx],
+            "co": hourly.get("carbon_monoxide", [])[target_idx],
+            "o3": hourly.get("ozone", [])[target_idx]
+        }
 
-    aqi_data = calculate_overall_aqi(raw_comps, temp_k)
+        return {k: v for k, v in raw_comps.items() if v is not None}
 
-    return {
-        "zone_id": zone_id,
-        "zone_name": zone_name,
-        "source": "openweather air pollution api",
-        "timestamp_unix": dt,
-        "coordinates": {"lat": lat, "lon": lon},
-        **aqi_data
-    }
+async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zone_type: str):
+    cached_data = _RAM_CACHE.get(zone_id)
+
+    needs_update = True
+    if cached_data:
+        last_fetched = cached_data.get("timestamp_unix", 0)
+        if datetime.now().timestamp() - last_fetched < 900:
+            needs_update = False
+            return cached_data
+
+    try:
+        raw_comps = await fetch_openmeteo_live(lat, lon)
+        dt = datetime.now().timestamp()
+        
+        aqi_data = calculate_overall_aqi(raw_comps, zone_type=zone_type)
+        
+        full_payload = {
+            "zone_id": zone_id,
+            "zone_name": zone_name,
+            "source": "openmeteo air pollution api",
+            "timestamp_unix": dt,
+            "coordinates": {"lat": lat, "lon": lon},
+            **aqi_data
+        }
+
+        _RAM_CACHE[zone_id] = full_payload
+        
+        return full_payload
+        
+    except Exception as e:
+        print(f"Live fetch failed for {zone_id}: {e}")
+        if cached_data:
+            return cached_data
+        raise e
+
+async def update_all_zones_background():
+    print("--- Background Update Started ---")
+    for zone_id, z in ZONES.items():
+        if z.get("provider") == "openmeteo":
+            try:
+                await get_zone_data(
+                    z["id"], 
+                    z["name"], 
+                    z["lat"], 
+                    z["lon"], 
+                    z.get("zone_type", "hills")
+                )
+                print(f"Updated: {zone_id}")
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                print(f"Failed to update {zone_id}: {e}")
+    print("--- Background Update Complete ---")

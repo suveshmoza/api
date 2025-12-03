@@ -12,32 +12,26 @@ def get_single_pollutant_aqi(pollutant: str, conc: float) -> Optional[int]:
     if pollutant not in AQI_BREAKPOINTS:
         return None
     bps = AQI_BREAKPOINTS[pollutant]
+    
     if conc < bps[0][0]:
         return 0
+        
     for bp in bps:
         if bp[0] <= conc <= bp[1]:
             return linear_interpolate(conc, bp)
+
     last_bp = bps[-1]
     if conc > last_bp[1]:
-        return last_bp[3]
+        return 500 
     return None
 
-def convert_to_us_units(pollutant: str, val_ugm3: float, temp_k: float = 298.15) -> float:
+def prepare_for_indian_aqi(pollutant: str, val_ugm3: float) -> float:
     if pollutant == "co":
-        base = val_ugm3 / 1145.0
-        return base * (temp_k / 298.15)
-    elif pollutant == "no2":
-        base = val_ugm3 / 1.88
-        return base * (temp_k / 298.15)
-    elif pollutant == "so2":
-        base = val_ugm3 / 2.62
-        return base * (temp_k / 298.15)
-    elif pollutant == "o3":
-        base = val_ugm3 / 1.96
-        return base * (temp_k / 298.15)
+        return val_ugm3 / 1000.0
     return val_ugm3
 
-def calculate_overall_aqi(pollutants_ugm3: Dict[str, float], temp_k: float = 298.15) -> Dict[str, Any]:
+def calculate_overall_aqi(pollutants_ugm3: Dict[str, float], zone_type: str = "default") -> Dict[str, Any]:
+    
     aqi_details = {}
     concentrations_formatted = {}
 
@@ -47,16 +41,18 @@ def calculate_overall_aqi(pollutants_ugm3: Dict[str, float], temp_k: float = 298
         "co": "co",
         "no2": "no2",
         "so2": "so2",
-        "o3": "o3", "ozone": "o3"
+        "o3": "o3", "ozone": "o3", "nitrogen_dioxide": "no2", "sulphur_dioxide": "so2", "carbon_monoxide": "co"
     }
 
     for raw_key, val in pollutants_ugm3.items():
         k = raw_key.lower()
         if k in key_map:
             internal_key = key_map[k]
-            converted_val = convert_to_us_units(internal_key, val, temp_k)
-            concentrations_formatted[internal_key] = round(converted_val, 2)
-            aqi_val = get_single_pollutant_aqi(internal_key, converted_val)
+
+            indian_unit_val = prepare_for_indian_aqi(internal_key, val)
+            
+            concentrations_formatted[internal_key] = round(indian_unit_val, 2)
+            aqi_val = get_single_pollutant_aqi(internal_key, indian_unit_val)
             if aqi_val is not None:
                 aqi_details[internal_key] = aqi_val
 
@@ -68,9 +64,10 @@ def calculate_overall_aqi(pollutants_ugm3: Dict[str, float], temp_k: float = 298
         overall_aqi = aqi_details[main_pollutant]
 
     return {
-        "us_aqi": overall_aqi,
+        "aqi": overall_aqi,
         "main_pollutant": main_pollutant,
         "aqi_breakdown": aqi_details,
         "concentrations_us_units": concentrations_formatted,
-        "concentrations_raw_ugm3": pollutants_ugm3
+        "concentrations_raw_ugm3": pollutants_ugm3,
+        "zone_applied": zone_type
     }

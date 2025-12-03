@@ -4,139 +4,159 @@
     "name": "Srinagar",
     "provider": "cpcb_data_gov",
     "lat": 34.066206,
-    "lon": 74.819820
+    "lon": 74.819820,
+    "zone_type": "urban"
   },
   "jammu_gandhinagar": {
     "id": "jammu_gandhinagar",
     "name": "Gandhi Nagar",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 32.7100,
-    "lon": 74.8605
+    "lon": 74.8605,
+    "zone_type": "urban"
   },
   "budgam_town": {
     "id": "budgam_town",
     "name": "Budgam Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 34.0150,
-    "lon": 74.7220
+    "lon": 74.7220,
+    "zone_type": "hills"
   },
   "ganderbal_town": {
     "id": "ganderbal_town",
     "name": "Ganderbal Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 34.2290,
-    "lon": 74.7787
+    "lon": 74.7787,
+    "zone_type": "hills"
   },
   "anantnag_city": {
     "id": "anantnag_city",
     "name": "Anantnag City",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.7386,
-    "lon": 75.1487
+    "lon": 75.1487,
+    "zone_type": "hills"
   },
   "pulwama_town": {
     "id": "pulwama_town",
     "name": "Pulwama Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.8740,
-    "lon": 74.8975
+    "lon": 74.8975,
+    "zone_type": "hills"
   },
   "shopian_town": {
     "id": "shopian_town",
     "name": "Shopian Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.7200,
-    "lon": 74.8333
+    "lon": 74.8333,
+    "zone_type": "hills"
   },
   "kulgam_town": {
     "id": "kulgam_town",
     "name": "Kulgam Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.6440,
-    "lon": 75.0186
+    "lon": 75.0186,
+    "zone_type": "hills"
   },
   "baramulla_town": {
     "id": "baramulla_town",
     "name": "Baramulla Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 34.2090,
-    "lon": 74.3500
+    "lon": 74.3500,
+    "zone_type": "hills"
   },
   "kupwara_town": {
     "id": "kupwara_town",
     "name": "Kupwara Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 34.5312,
-    "lon": 74.2550
+    "lon": 74.2550,
+    "zone_type": "hills"
   },
   "bandipora_town": {
     "id": "bandipora_town",
     "name": "Bandipora Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 34.4175,
-    "lon": 74.6499
+    "lon": 74.6499,
+    "zone_type": "hills"
   },
   "samba_town": {
     "id": "samba_town",
     "name": "Samba Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 32.5623,
-    "lon": 75.1190
+    "lon": 75.1190,
+    "zone_type": "industrial"
   },
   "kathua_town": {
     "id": "kathua_town",
     "name": "Kathua Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 32.3670,
-    "lon": 75.5230
+    "lon": 75.5230,
+    "zone_type": "industrial"
   },
   "udhampur_city": {
     "id": "udhampur_city",
     "name": "Udhampur City",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 32.9240,
-    "lon": 75.1357
+    "lon": 75.1357,
+    "zone_type": "urban"
   },
   "reasi_town": {
     "id": "reasi_town",
     "name": "Reasi Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.0803,
-    "lon": 74.8383
+    "lon": 74.8383,
+    "zone_type": "hills"
   },
   "ramban_town": {
     "id": "ramban_town",
     "name": "Ramban Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.2420,
-    "lon": 75.2450
+    "lon": 75.2450,
+    "zone_type": "hills"
   },
   "doda_town": {
     "id": "doda_town",
     "name": "Doda Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.1320,
-    "lon": 75.5670
+    "lon": 75.5670,
+    "zone_type": "hills"
   },
   "kishtwar_town": {
     "id": "kishtwar_town",
     "name": "Kishtwar Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.3103,
-    "lon": 75.7665
+    "lon": 75.7665,
+    "zone_type": "hills"
   },
   "rajouri_town": {
     "id": "rajouri_town",
     "name": "Rajouri Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.3750,
-    "lon": 74.3150
+    "lon": 74.3150,
+    "zone_type": "hills"
   },
   "poonch_town": {
     "id": "poonch_town",
     "name": "Poonch Town",
-    "provider": "openweather",
+    "provider": "openmeteo",
     "lat": 33.7690,
-    "lon": 74.0920
+    "lon": 74.0920,
+    "zone_type": "hills"
   }
 }
