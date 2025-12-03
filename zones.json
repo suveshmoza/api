@@ -7,36 +7,84 @@
     "lon": 74.819820,
     "zone_type": "urban"
   },
+  "srinagar_central": {
+    "id": "srinagar_central",
+    "name": "Srinagar City",
+    "provider": "openmeteo",
+    "lat": 34.0709,
+    "lon": 74.8122,
+    "zone_type": "urban"
+  },
   "jammu_gandhinagar": {
     "id": "jammu_gandhinagar",
     "name": "Gandhi Nagar",
     "provider": "openmeteo",
-    "lat": 32.7100,
-    "lon": 74.8605,
+    "lat": 32.7169,
+    "lon": 74.8609,
     "zone_type": "urban"
   },
-  "budgam_town": {
-    "id": "budgam_town",
-    "name": "Budgam",
+  "jammu_talab_tillo": {
+    "id": "jammu_talab_tillo",
+    "name": "Talab Tillo",
     "provider": "openmeteo",
-    "lat": 34.0150,
-    "lon": 74.7220,
+    "lat": 32.7483,
+    "lon": 74.8556,
+    "zone_type": "urban"
+  },
+  "jammu_janipur": {
+    "id": "jammu_janipur",
+    "name": "Janipur",
+    "provider": "openmeteo",
+    "lat": 32.7527,
+    "lon": 74.8372,
+    "zone_type": "urban"
+  },
+  "jammu_paloura": {
+    "id": "jammu_paloura",
+    "name": "Paloura",
+    "provider": "openmeteo",
+    "lat": 32.7554,
+    "lon": 74.8244,
+    "zone_type": "urban"
+  },
+  "jammu_bantalab": {
+    "id": "jammu_bantalab",
+    "name": "Bantalab",
+    "provider": "openmeteo",
+    "lat": 32.7790,
+    "lon": 74.8150,
+    "zone_type": "urban"
+  },
+  "jammu_purkhoo": {
+    "id": "jammu_purkhoo",
+    "name": "Purkhoo",
+    "provider": "openmeteo",
+    "lat": 32.8050,
+    "lon": 74.7720,
+    "zone_type": "urban"
+  },
+  "baramulla_town": {
+    "id": "baramulla_town",
+    "name": "Baramulla",
+    "provider": "openmeteo",
+    "lat": 34.2090,
+    "lon": 74.3420,
     "zone_type": "hills"
   },
-  "ganderbal_town": {
-    "id": "ganderbal_town",
-    "name": "Ganderbal",
+  "sopore_town": {
+    "id": "sopore_town",
+    "name": "Sopore",
     "provider": "openmeteo",
-    "lat": 34.2290,
-    "lon": 74.7787,
+    "lat": 34.2866,
+    "lon": 74.4726,
     "zone_type": "hills"
   },
-  "anantnag_city": {
-    "id": "anantnag_city",
-    "name": "Anantnag",
+  "pattan_town": {
+    "id": "pattan_town",
+    "name": "Pattan",
     "provider": "openmeteo",
-    "lat": 33.7386,
-    "lon": 75.1487,
+    "lat": 34.1548,
+    "lon": 74.5560,
     "zone_type": "hills"
   },
   "pulwama_town": {
@@ -44,7 +92,95 @@
     "name": "Pulwama",
     "provider": "openmeteo",
     "lat": 33.8740,
-    "lon": 74.8975,
+    "lon": 74.8990,
+    "zone_type": "hills"
+  },
+  "kakapora_town": {
+    "id": "kakapora_town",
+    "name": "Kakapora",
+    "provider": "openmeteo",
+    "lat": 33.9805,
+    "lon": 74.9313,
+    "zone_type": "hills"
+  },
+  "tral_town": {
+    "id": "tral_town",
+    "name": "Tral",
+    "provider": "openmeteo",
+    "lat": 33.9278,
+    "lon": 75.0941,
+    "zone_type": "hills"
+  },
+  "anantnag_city": {
+    "id": "anantnag_city",
+    "name": "Anantnag",
+    "provider": "openmeteo",
+    "lat": 33.7295,
+    "lon": 75.1500,
+    "zone_type": "hills"
+  },
+  "mattan_town": {
+    "id": "mattan_town",
+    "name": "Mattan",
+    "provider": "openmeteo",
+    "lat": 33.7355,
+    "lon": 75.2214,
+    "zone_type": "hills"
+  },
+  "bijbehara_town": {
+    "id": "bijbehara_town",
+    "name": "Bijbehara",
+    "provider": "openmeteo",
+    "lat": 33.7920,
+    "lon": 75.1022,
+    "zone_type": "hills"
+  },
+  "kupwara_town": {
+    "id": "kupwara_town",
+    "name": "Kupwara",
+    "provider": "openmeteo",
+    "lat": 34.5260,
+    "lon": 74.2580,
+    "zone_type": "hills"
+  },
+  "handwara_town": {
+    "id": "handwara_town",
+    "name": "Handwara",
+    "provider": "openmeteo",
+    "lat": 34.4049,
+    "lon": 74.2854,
+    "zone_type": "hills"
+  },
+  "sogam_lolab": {
+    "id": "sogam_lolab",
+    "name": "Sogam (Lolab)",
+    "provider": "openmeteo",
+    "lat": 34.4870,
+    "lon": 74.3760,
+    "zone_type": "hills"
+  },
+  "budgam_town": {
+    "id": "budgam_town",
+    "name": "Budgam",
+    "provider": "openmeteo",
+    "lat": 34.0150,
+    "lon": 74.7180,
+    "zone_type": "hills"
+  },
+  "chadoora_town": {
+    "id": "chadoora_town",
+    "name": "Chadoora",
+    "provider": "openmeteo",
+    "lat": 33.9540,
+    "lon": 74.7960,
+    "zone_type": "hills"
+  },
+  "magam_town": {
+    "id": "magam_town",
+    "name": "Magam",
+    "provider": "openmeteo",
+    "lat": 34.0832,
+    "lon": 74.5578,
     "zone_type": "hills"
   },
   "shopian_town": {
@@ -52,7 +188,47 @@
     "name": "Shopian",
     "provider": "openmeteo",
     "lat": 33.7200,
-    "lon": 74.8333,
+    "lon": 74.8300,
+    "zone_type": "hills"
+  },
+  "zainapora_town": {
+    "id": "zainapora_town",
+    "name": "Zainapora",
+    "provider": "openmeteo",
+    "lat": 33.7420,
+    "lon": 74.8900,
+    "zone_type": "hills"
+  },
+  "bandipora_town": {
+    "id": "bandipora_town",
+    "name": "Bandipora",
+    "provider": "openmeteo",
+    "lat": 34.4174,
+    "lon": 74.6437,
+    "zone_type": "hills"
+  },
+  "sumbal_town": {
+    "id": "sumbal_town",
+    "name": "Sumbal",
+    "provider": "openmeteo",
+    "lat": 34.3007,
+    "lon": 74.7063,
+    "zone_type": "hills"
+  },
+  "ganderbal_town": {
+    "id": "ganderbal_town",
+    "name": "Ganderbal",
+    "provider": "openmeteo",
+    "lat": 34.2164,
+    "lon": 74.7786,
+    "zone_type": "hills"
+  },
+  "kangan_town": {
+    "id": "kangan_town",
+    "name": "Kangan",
+    "provider": "openmeteo",
+    "lat": 34.2630,
+    "lon": 74.9030,
     "zone_type": "hills"
   },
   "kulgam_town": {
@@ -60,32 +236,40 @@
     "name": "Kulgam",
     "provider": "openmeteo",
     "lat": 33.6440,
-    "lon": 75.0186,
+    "lon": 75.0200,
     "zone_type": "hills"
   },
-  "baramulla_town": {
-    "id": "baramulla_town",
-    "name": "Baramulla",
+  "qazigund_town": {
+    "id": "qazigund_town",
+    "name": "Qazigund",
     "provider": "openmeteo",
-    "lat": 34.2090,
-    "lon": 74.3500,
+    "lat": 33.5939,
+    "lon": 75.1643,
     "zone_type": "hills"
   },
-  "kupwara_town": {
-    "id": "kupwara_town",
-    "name": "Kupwara",
+  "reasi_town": {
+    "id": "reasi_town",
+    "name": "Reasi",
     "provider": "openmeteo",
-    "lat": 34.5312,
-    "lon": 74.2550,
+    "lat": 33.0800,
+    "lon": 74.8300,
     "zone_type": "hills"
   },
-  "bandipora_town": {
-    "id": "bandipora_town",
-    "name": "Bandipora",
+  "katra_town": {
+    "id": "katra_town",
+    "name": "Katra",
     "provider": "openmeteo",
-    "lat": 34.4175,
-    "lon": 74.6499,
+    "lat": 32.9910,
+    "lon": 74.9490,
     "zone_type": "hills"
+  },
+  "udhampur_city": {
+    "id": "udhampur_city",
+    "name": "Udhampur",
+    "provider": "openmeteo",
+    "lat": 32.9160,
+    "lon": 75.1416,
+    "zone_type": "urban"
   },
   "samba_town": {
     "id": "samba_town",
@@ -102,22 +286,6 @@
     "lat": 32.3670,
     "lon": 75.5230,
     "zone_type": "industrial"
-  },
-  "udhampur_city": {
-    "id": "udhampur_city",
-    "name": "Udhampur",
-    "provider": "openmeteo",
-    "lat": 32.9240,
-    "lon": 75.1357,
-    "zone_type": "urban"
-  },
-  "reasi_town": {
-    "id": "reasi_town",
-    "name": "Reasi",
-    "provider": "openmeteo",
-    "lat": 33.0803,
-    "lon": 74.8383,
-    "zone_type": "hills"
   },
   "ramban_town": {
     "id": "ramban_town",
