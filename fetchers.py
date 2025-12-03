@@ -107,11 +107,11 @@ async def fetch_openmeteo_live(lat: float, lon: float) -> Dict[str, float]:
 
         return {k: v for k, v in raw_comps.items() if v is not None}
 
-async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zone_type: str):
+async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zone_type: str, force_refresh: bool = False):
     cached_data = _RAM_CACHE.get(zone_id)
     current_time = datetime.now().timestamp()
 
-    if cached_data:
+    if cached_data and not force_refresh:
         last_fetched = cached_data.get("timestamp_unix", 0)
         if current_time - last_fetched < CACHE_DURATION:
             return cached_data
@@ -140,8 +140,18 @@ async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zo
             return cached_data
         raise e
 
+async def start_background_loop():
+    print("--- Background Scheduler Started ---")
+    while True:
+        try:
+            await update_all_zones_background()
+        except Exception as e:
+            print(f"Error in background loop: {e}")
+
+        await asyncio.sleep(CACHE_DURATION)
+
 async def update_all_zones_background():
-    print("--- Background Update Started ---")
+    print(f"--- Updating Zones at {datetime.now()} ---")
     for zone_id, z in ZONES.items():
         if z.get("provider") == "openmeteo":
             try:
@@ -150,10 +160,11 @@ async def update_all_zones_background():
                     z["name"], 
                     z["lat"], 
                     z["lon"], 
-                    z.get("zone_type", "hills")
+                    z.get("zone_type", "hills"),
+                    force_refresh=True 
                 )
                 print(f"Updated: {zone_id}")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1) 
             except Exception as e:
                 print(f"Failed to update {zone_id}: {e}")
-    print("--- Background Update Complete ---")
+    print("--- Update Cycle Complete ---")
