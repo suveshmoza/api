@@ -45,7 +45,7 @@ def register_zone_routes(app: FastAPI) -> None:
                 {
                     "id": z["id"],
                     "name": z["name"],
-                    "provider": "openmeteo",
+                    "provider": z.get("provider"),
                     "lat": z.get("lat"),
                     "lon": z.get("lon"),
                     "zone_type": z.get("zone_type", "hills")
