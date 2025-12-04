@@ -1,6 +1,40 @@
 # Breathe backend
 A modular FastAPI backend designed to retrieve and standardize air quality data across the Jammu & Kashmir region for the **Breathe** app. The system aggregates data from multiple providers: **OpenMeteo** for satellite-based estimates in most districts and the **Central Pollution Control Board** (CPCB) for ground station data in Srinagar.
 
+## How the AQI is Calculated
+
+`[1]` The system accepts a dictionary of raw pollutant values. Before any math occurs, the system sanitizes the input keys using a robust mapping strategy.
+
+ - It handles variations in naming conventions (e.g., mapping "pm2.5", "pm25", or "pm2_5" all to the internal standard pm2_5).
+
+ - This ensures that no data is dropped due to typo-sensitivity or API inconsistencies.
+
+`[2]` Indian AQI standards require specific units for different chemical compounds. The system applies a check (`prepare_for_indian_aqi`) to the raw concentrations (C).
+
+- PM2.5, PM10, NO2​, SO2​, and Ozone (O3​) are maintained in Micrograms per cubic meter (µg/m3).
+
+- The code explicitly detects Carbon Monoxide (co) and divides the value by 1000. This converts the raw µg/m3 value into Milligrams per cubic meter (mg/m3), which is the required unit for the CO breakpoint table.
+
+`[3]` Once units are standardized, the system calculates an individual Sub-Index for each pollutant. It does not simply "lookup" a value; it calculates a precise integer using **Linear Interpolation**.
+
+ - The system scans the `AQI_BREAKPOINTS` configuration to find the specific range [Clo​,Chi​] that the current concentration falls into.
+ - The system applies the standard AQI formula used by environmental agencies:
+
+    `I=[(Chi​−Clo​)(Ihi​−Ilo​)​×(C−Clo​)]+Ilo​`
+
+  Where:
+  - **I**: The calculated AQI sub-index.
+  - **C**: The current pollutant concentration.
+  - **Clo​/Chi​**: The concentration breakpoints (lower and upper bounds).
+  - **Ilo​/Ihi**​: The corresponding AQI index breakpoints.
+
+  The code includes failsafes: if a value exceeds the maximum defined breakpoint, it is capped at 500; if it is below the minimum, it defaults to 0.
+
+`[4]` The final Air Quality Index is **not** an average of the pollutants.
+  - The system collects all calculated sub-indices (`aqi_details`). It then identifies the maximum value among them.
+  - The pollutant responsible for this highest value is flagged as the `main_pollutant`.
+  - This **single highest value** becomes the reported Overall AQI.
+
 ## Structure
 ```breathe/
 ├─ api/
@@ -42,13 +76,6 @@ A modular FastAPI backend designed to retrieve and standardize air quality data 
 - python-dotenv
 - uvicorn
 
-## Environment variables
-set in `.env`:
-
-```
-DATA_GOV_API_KEY=your_key
-```
-
 ## Running
 From the `api` directory:
 `uvicorn main:app --reload`
@@ -65,16 +92,6 @@ From the `api` directory:
 
 - List All Zones:
 `GET /zones`
-
-## How the AQI is Calculated
-
-`[1]` The system fetches raw pollutant concentrations (PM2.5, PM10, NO2, SO2, CO, O3) in µg/m³ from the relevant provider.
-
-`[2]` While most pollutants remain in µg/m³, Carbon Monoxide (CO) is divided by 1000 to convert it to mg/m³, as required by the Indian AQI standard.
-
-`[3]` The standardized values are compared against the CPCB breakpoint tables loaded from aqi_breakpoints.json. Linear interpolation is used to calculate the sub-index for each pollutant.
-
-`[4]` The overall AQI is determined by the highest (worst) sub-index among the available pollutants.
 
 ## Development
 The project is designed to be data-driven. Adding a new town or district does not require changing Python code; you simply add a new entry to `zones.json`. Similarly, if government standards change, updating `aqi_breakpoints.json` will instantly update the calculation logic across the entire application.
