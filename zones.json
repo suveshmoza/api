@@ -1,10 +1,10 @@
 {
-  "srinagar_gov": {
-    "id": "srinagar_gov",
+  "srinagar": {
+    "id": "srinagar",
     "name": "Srinagar",
-    "provider": "cpcb_data_gov",
-    "lat": 34.066206,
-    "lon": 74.819820,
+    "provider": "openmeteo",
+    "lat": 34.0709,
+    "lon": 74.8122,
     "zone_type": "urban"
   },
   "jammu_gandhinagar": {

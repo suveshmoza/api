@@ -4,65 +4,12 @@ from datetime import datetime
 from fastapi import HTTPException
 from typing import Dict, Any
 
-from config import data_gov_api_key, ZONES
+from config import ZONES
 from conversions import calculate_overall_aqi
 
 _RAM_CACHE = {}
 CACHE_DURATION = 900  # 15 minutes
 
-async def fetch_srinagar_gov() -> Dict[str, Any]:
-    if not data_gov_api_key:
-        raise HTTPException(status_code=500, detail="DATA_GOV_API_KEY not configured")
-
-    resource_id = "3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69"
-    params = {
-        "api-key": data_gov_api_key,
-        "format": "json",
-        "limit": 100,
-        "filters[city]": "Srinagar",
-    }
-
-    url = f"https://api.data.gov.in/resource/{resource_id}"
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(url, params=params)
-
-    if r.status_code != 200:
-        raise HTTPException(status_code=502, detail="data.gov.in request failed")
-
-    data = r.json()
-    records = data.get("records", [])
-    if not records:
-        raise HTTPException(status_code=404, detail="no cpcb data for srinagar found")
-
-    raw_pollutants = {}
-    last_update = None
-    lat = None
-    lon = None
-
-    for rec in records:
-        p_id = rec.get("pollutant_id")
-        avg_value = rec.get("avg_value")
-
-        if p_id and avg_value not in (None, "NA"):
-            try:
-                raw_pollutants[p_id] = float(avg_value)
-            except ValueError:
-                pass
-
-        last_update = rec.get("last_update", last_update)
-        lat = float(rec.get("latitude")) if rec.get("latitude") else lat
-        lon = float(rec.get("longitude")) if rec.get("longitude") else lon
-
-    aqi_data = calculate_overall_aqi(raw_pollutants, zone_type="urban")
-
-    return {
-        "zone_id": "srinagar_gov",
-        "zone_name": "Srinagar",
-        "source": "CPCB (data.gov.in)",
-        "last_update": last_update,
-        "coordinates": {"lat": lat, "lon": lon},
-        **aqi_data
-    }
 
 async def fetch_openmeteo_live(lat: float, lon: float) -> Dict[str, float]:
     url = "https://air-quality-api.open-meteo.com/v1/air-quality"
@@ -153,18 +100,17 @@ async def start_background_loop():
 async def update_all_zones_background():
     print(f"--- Updating Zones at {datetime.now()} ---")
     for zone_id, z in ZONES.items():
-        if z.get("provider") == "openmeteo":
-            try:
-                await get_zone_data(
-                    z["id"], 
-                    z["name"], 
-                    z["lat"], 
-                    z["lon"], 
-                    z.get("zone_type", "hills"),
-                    force_refresh=True 
-                )
-                print(f"Updated: {zone_id}")
-                await asyncio.sleep(1) 
-            except Exception as e:
-                print(f"Failed to update {zone_id}: {e}")
+        try:
+            await get_zone_data(
+                z["id"], 
+                z["name"], 
+                z["lat"], 
+                z["lon"], 
+                z.get("zone_type", "hills"),
+                force_refresh=True 
+            )
+            print(f"Updated: {zone_id}")
+            await asyncio.sleep(1) 
+        except Exception as e:
+            print(f"Failed to update {zone_id}: {e}")
     print("--- Update Cycle Complete ---")

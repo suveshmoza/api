@@ -21,8 +21,7 @@ A modular FastAPI backend designed to retrieve and standardize air quality data 
   Generates all `/aqi/<zone>` endpoints dynamically based on`zones.json`. Also exposes `/aqi/zone/{zone_id}`.
 - `fetchers.py`
    contains data fetch logic.
-   `fetch_srinagar_gov` reads cpcb data from data.gov.in, plus temperature from openweather.
-   `fetch_openmeteo_live` queries the OpenMeteo Air Quality API for real-time satellite-based pollutant data.
+   `fetch_openmeteo_live` queries the OpenMeteo Air Quality API for a precise real-time satellite-based pollutant data.
    `get_zone_data` implements the caching strategy. it checks the internal server memory (RAM) first. If data is missing or older than 15 minutes, it fetches fresh data from the provider and updates the cache.
 - `conversions.py`
   Handles the mathematics of AQI calculation.
