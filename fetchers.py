@@ -10,8 +10,7 @@ from conversions import calculate_overall_aqi
 _RAM_CACHE = {}
 CACHE_DURATION = 900  # 15 minutes
 
-
-async def fetch_openmeteo_live(lat: float, lon: float) -> Dict[str, float]:
+async def fetch_openmeteo_live(lat: float, lon: float, zone_type: str) -> Dict[str, Any]:
     url = "https://air-quality-api.open-meteo.com/v1/air-quality"
     params = {
         "latitude": lat,
@@ -19,31 +18,26 @@ async def fetch_openmeteo_live(lat: float, lon: float) -> Dict[str, float]:
         "hourly": "pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide,ozone",
         "timezone": "auto",
         "timeformat": "unixtime",
-        "past_days": 1 
+        "past_days": 1
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
         r = await client.get(url, params=params)
-        
         if r.status_code != 200:
-            print(f"OpenMeteo Error: {r.text}")
             raise HTTPException(status_code=502, detail="openmeteo request failed")
 
         data = r.json()
         hourly = data.get("hourly", {})
         times = hourly.get("time", [])
-        
+
         if not times:
             raise HTTPException(status_code=404, detail="no openmeteo aq data found")
 
-        # Get current UTC timestamp
         now_ts = datetime.now().timestamp()
-        
-        # Find the timestamp in the list that is closest to NOW
         closest_ts = min(times, key=lambda t: abs(t - now_ts))
         target_idx = times.index(closest_ts)
 
-        raw_comps = {
+        current_comps = {
             "pm10": hourly.get("pm10", [])[target_idx],
             "pm2_5": hourly.get("pm2_5", [])[target_idx],
             "no2": hourly.get("nitrogen_dioxide", [])[target_idx],
@@ -52,7 +46,37 @@ async def fetch_openmeteo_live(lat: float, lon: float) -> Dict[str, float]:
             "o3": hourly.get("ozone", [])[target_idx]
         }
 
-        return {k: v for k, v in raw_comps.items() if v is not None}
+        current_comps = {k: v for k, v in current_comps.items() if v is not None}
+
+        start_idx = max(0, target_idx - 24)
+        history = []
+
+        for i in range(start_idx, target_idx + 1):
+            hour_comps = {
+                "pm10": hourly.get("pm10", [])[i],
+                "pm2_5": hourly.get("pm2_5", [])[i],
+                "no2": hourly.get("nitrogen_dioxide", [])[i],
+                "so2": hourly.get("sulphur_dioxide", [])[i],
+                "co": hourly.get("carbon_monoxide", [])[i],
+                "o3": hourly.get("ozone", [])[i]
+            }
+            hour_comps = {k: v for k, v in hour_comps.items() if v is not None}
+            
+            # Calculate AQI for this specific hour
+            # Note: We catch errors in case data is missing for a specific hour
+            try:
+                aqi_res = calculate_overall_aqi(hour_comps, zone_type=zone_type)
+                history.append({
+                    "ts": times[i],
+                    "aqi": aqi_res["aqi"]
+                })
+            except:
+                continue
+
+        return {
+            "current_comps": current_comps,
+            "history": history
+        }
 
 async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zone_type: str, force_refresh: bool = False):
     cached_data = _RAM_CACHE.get(zone_id)
@@ -64,7 +88,10 @@ async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zo
             return cached_data
 
     try:
-        raw_comps = await fetch_openmeteo_live(lat, lon)
+        fetched_data = await fetch_openmeteo_live(lat, lon, zone_type)
+        
+        raw_comps = fetched_data["current_comps"]
+        history = fetched_data["history"]
         
         aqi_data = calculate_overall_aqi(raw_comps, zone_type=zone_type)
         
@@ -74,11 +101,11 @@ async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zo
             "source": "openmeteo air pollution api",
             "timestamp_unix": current_time,
             "coordinates": {"lat": lat, "lon": lon},
+            "history": history,
             **aqi_data
         }
 
         _RAM_CACHE[zone_id] = full_payload
-        
         return full_payload
         
     except Exception as e:
