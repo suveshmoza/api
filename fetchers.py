@@ -1,8 +1,8 @@
 import httpx
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import HTTPException
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from config import ZONES, SRINAGAR_OPENAQ_CONFIG, openaq_api_key
 from conversions import calculate_overall_aqi
@@ -10,29 +10,81 @@ from conversions import calculate_overall_aqi
 _RAM_CACHE = {}
 CACHE_DURATION = 900  # 15 minutes
 
-async def fetch_openaq_srinagar() -> Dict[str, Any]:
-    if not openaq_api_key:
-        print("WARNING: OPENAQ_API_KEY not set. Falling back to OpenMeteo logic not possible here.")
-        raise HTTPException(status_code=500, detail="Server config error: Missing OpenAQ Key")
-
-    loc_id = SRINAGAR_OPENAQ_CONFIG["location_id"]
-    url = f"https://api.openaq.org/v3/locations/{loc_id}/sensors"
-    headers = {"X-API-Key": openaq_api_key}
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(url, headers=headers)
-        
+async def fetch_sensor_history(client: httpx.AsyncClient, sensor_id: int, param_name: str, start_iso: str, end_iso: str) -> List[Dict[str, Any]]:
+    """
+    Fetches hourly history for a single sensor using OpenAQ v3 /hours endpoint.
+    """
+    url = f"https://api.openaq.org/v3/sensors/{sensor_id}/hours"
+    params = {
+        "datetime_from": start_iso,
+        "datetime_to": end_iso,
+        "limit": 1000
+    }
+    
+    try:
+        r = await client.get(url, params=params)
         if r.status_code != 200:
-            print(f"OpenAQ Error: {r.text}")
-            raise HTTPException(status_code=502, detail="OpenAQ fetch failed")
-
+            return []
+        
         data = r.json()
         results = data.get("results", [])
         
-        current_comps = {}
-        sensor_map = SRINAGAR_OPENAQ_CONFIG["sensor_map"]
+        parsed_points = []
+        for res in results:
+            iso_time = res.get("period", {}).get("datetimeTo", {}).get("local")
+            val = res.get("value")
+            
+            if iso_time and val is not None:
+                try:
+                    dt = datetime.fromisoformat(iso_time)
+                    ts = dt.timestamp()
+                    parsed_points.append({"ts": ts, "param": param_name, "val": val})
+                except ValueError:
+                    continue
+        return parsed_points
+        
+    except Exception as e:
+        print(f"Error fetching history for sensor {sensor_id}: {e}")
+        return []
 
-        for sensor in results:
+async def fetch_openaq_srinagar(zone_type: str = "hills") -> Dict[str, Any]:
+    if not openaq_api_key:
+        print("WARNING: OPENAQ_API_KEY not set.")
+        raise HTTPException(status_code=500, detail="Server config error: Missing OpenAQ Key")
+
+    loc_id = SRINAGAR_OPENAQ_CONFIG["location_id"]
+    sensor_map = SRINAGAR_OPENAQ_CONFIG["sensor_map"]
+    
+    headers = {"X-API-Key": openaq_api_key}
+
+    now = datetime.now()
+    past_24h = now - timedelta(hours=24)
+    start_iso = past_24h.replace(microsecond=0).isoformat()
+    end_iso = now.replace(microsecond=0).isoformat()
+
+    async with httpx.AsyncClient(timeout=20, headers=headers) as client:
+        latest_url = f"https://api.openaq.org/v3/locations/{loc_id}/sensors"
+
+        latest_task = client.get(latest_url)
+
+        history_tasks = []
+        for s_id, param in sensor_map.items():
+            history_tasks.append(fetch_sensor_history(client, s_id, param, start_iso, end_iso))
+
+        all_results = await asyncio.gather(latest_task, *history_tasks)
+
+        latest_resp = all_results[0]
+        history_lists = all_results[1:]
+        
+        if latest_resp.status_code != 200:
+            print(f"OpenAQ Latest Error: {latest_resp.text}")
+            raise HTTPException(status_code=502, detail="OpenAQ fetch failed")
+
+        latest_data = latest_resp.json()
+        latest_results = latest_data.get("results", [])
+        current_comps = {}
+
+        for sensor in latest_results:
             s_id = sensor.get("id")
             latest_obj = sensor.get("latest", {})
             val = latest_obj.get("value")
@@ -41,10 +93,24 @@ async def fetch_openaq_srinagar() -> Dict[str, Any]:
                 name = sensor_map[s_id]
                 current_comps[name] = val
 
+        all_points = [pt for sublist in history_lists for pt in sublist]
+
+        history_buckets = {}
+        for pt in all_points:
+            ts = pt['ts']
+            if ts not in history_buckets:
+                history_buckets[ts] = {}
+            history_buckets[ts][pt['param']] = pt['val']
+
+        sorted_times = sorted(history_buckets.keys())
+        history = []
+        
+        for ts in sorted_times:
+            hour_comps = history_buckets[ts]
             try:
                 aqi_res = calculate_overall_aqi(hour_comps, zone_type=zone_type)
                 history.append({
-                    "ts": times[i],
+                    "ts": ts,
                     "aqi": aqi_res["aqi"]
                 })
             except:
@@ -52,7 +118,7 @@ async def fetch_openaq_srinagar() -> Dict[str, Any]:
 
         return {
             "current_comps": current_comps,
-            "history": [] 
+            "history": history 
         }
 
 async def fetch_openmeteo_live(lat: float, lon: float, zone_type: str) -> Dict[str, Any]:
@@ -132,7 +198,7 @@ async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zo
 
     try:
         if zone_id == "srinagar":
-            fetched_data = await fetch_openaq_srinagar()
+            fetched_data = await fetch_openaq_srinagar(zone_type=zone_type)
             source_name = "openaq (official cpcb)"
         else:
             fetched_data = await fetch_openmeteo_live(lat, lon, zone_type)
