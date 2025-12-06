@@ -1,5 +1,6 @@
 import asyncio
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from routes import register_zone_routes
 from fetchers import update_all_zones_background
@@ -23,5 +24,13 @@ async def periodic_updates():
         await asyncio.sleep(900)
 
 app = FastAPI(title="breathe backend", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # for devs: allows ALL origins. In prod, change to ["https://your-site.com"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 register_zone_routes(app)
