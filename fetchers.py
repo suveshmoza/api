@@ -219,7 +219,30 @@ async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zo
         history = fetched_data["history"]
         
         aqi_data = calculate_overall_aqi(raw_comps, zone_type=zone_type)
+        current_aqi = aqi_data.get("aqi", 0)
+
+        trend_1h = None
+        trend_24h = None
         
+        def get_past_aqi(target_ts, history_list, tolerance=1800):
+            for point in history_list:
+                if abs(point['ts'] - target_ts) <= tolerance:
+                    return point['aqi']
+            return None
+
+        if history:
+            ts_1h_ago = current_time - 3600
+            ts_24h_ago = current_time - 86400
+
+            val_1h = get_past_aqi(ts_1h_ago, history)
+            val_24h = get_past_aqi(ts_24h_ago, history)
+
+            if val_1h is not None:
+                trend_1h = current_aqi - val_1h
+            
+            if val_24h is not None:
+                trend_24h = current_aqi - val_24h
+
         full_payload = {
             "zone_id": zone_id,
             "zone_name": zone_name,
@@ -227,6 +250,10 @@ async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zo
             "timestamp_unix": current_time,
             "coordinates": {"lat": lat, "lon": lon},
             "history": history,
+            "trends": {
+                "change_1h": trend_1h, 
+                "change_24h": trend_24h
+            },
             **aqi_data
         }
 
