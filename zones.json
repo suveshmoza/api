@@ -71,28 +71,12 @@
     "lon": 74.2854,
     "zone_type": "hills"
   },
-  "jammu_bantalab": {
-    "id": "jammu_bantalab",
-    "name": "Bantalab",
-    "provider": "openmeteo",
-    "lat": 32.7790,
-    "lon": 74.8150,
-    "zone_type": "urban"
-  },
-  "jammu_gandhinagar": {
-    "id": "jammu_gandhinagar",
-    "name": "Gandhi Nagar",
+  "jammu_city": {
+    "id": "jammu_city",
+    "name": "Jammu",
     "provider": "openmeteo",
     "lat": 32.7169,
     "lon": 74.8609,
-    "zone_type": "urban"
-  },
-  "jammu_purkhoo": {
-    "id": "jammu_purkhoo",
-    "name": "Purkhoo",
-    "provider": "openmeteo",
-    "lat": 32.8050,
-    "lon": 74.7720,
     "zone_type": "urban"
   },
   "kakapora_town": {
