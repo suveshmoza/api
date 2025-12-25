@@ -47,7 +47,7 @@ async def fetch_sensor_history(client: httpx.AsyncClient, sensor_id: int, param_
         print(f"Error fetching history for sensor {sensor_id}: {e}")
         return []
 
-async def fetch_openaq_srinagar(zone_type: str = "hills") -> Dict[str, Any]:
+async def fetch_openaq_srinagar(lat: float, lon: float, zone_type: str = "hills") -> Dict[str, Any]:
     if not openaq_api_key:
         print("WARNING: OPENAQ_API_KEY not set.")
         raise HTTPException(status_code=500, detail="Server config error: Missing OpenAQ Key")
@@ -62,19 +62,32 @@ async def fetch_openaq_srinagar(zone_type: str = "hills") -> Dict[str, Any]:
     start_iso = past_24h.replace(microsecond=0).isoformat()
     end_iso = now.replace(microsecond=0).isoformat()
 
+    om_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
+    om_params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": "ozone",
+        "timezone": "auto",
+        "timeformat": "unixtime",
+        "past_days": 1
+    }
+
     async with httpx.AsyncClient(timeout=20, headers=headers) as client:
         latest_url = f"https://api.openaq.org/v3/locations/{loc_id}/sensors"
 
         latest_task = client.get(latest_url)
-
         history_tasks = []
         for s_id, param in sensor_map.items():
             history_tasks.append(fetch_sensor_history(client, s_id, param, start_iso, end_iso))
 
-        all_results = await asyncio.gather(latest_task, *history_tasks)
+        async with httpx.AsyncClient(timeout=20) as om_client:
+            om_task = om_client.get(om_url, params=om_params)
+            
+            all_results = await asyncio.gather(latest_task, om_task, *history_tasks)
 
         latest_resp = all_results[0]
-        history_lists = all_results[1:]
+        om_resp = all_results[1]
+        history_lists = all_results[2:]
         
         if latest_resp.status_code != 200:
             print(f"OpenAQ Latest Error: {latest_resp.text}")
@@ -93,14 +106,34 @@ async def fetch_openaq_srinagar(zone_type: str = "hills") -> Dict[str, Any]:
                 name = sensor_map[s_id]
                 current_comps[name] = val
 
-        all_points = [pt for sublist in history_lists for pt in sublist]
+        om_points = []
+        if om_resp.status_code == 200:
+            om_json = om_resp.json()
+            hourly = om_json.get("hourly", {})
+            times = hourly.get("time", [])
+            vals = hourly.get("ozone", [])
+            
+            for t, v in zip(times, vals):
+                if v is not None:
+                    om_points.append({"ts": t, "param": "o3", "val": v})
+
+            if times:
+                now_ts = now.timestamp()
+                closest_ts = min(times, key=lambda t: abs(t - now_ts))
+                idx = times.index(closest_ts)
+                if vals[idx] is not None:
+                    current_comps["o3"] = vals[idx]
+        else:
+            print(f"OpenMeteo Ozone fetch failed: {om_resp.status_code}")
+
+        all_points = [pt for sublist in history_lists for pt in sublist] + om_points
 
         if current_comps and all(v == 0 for v in current_comps.values()):
             print("fetch_openaq_srinagar: OpenAQ reporting all zeros. Patching with last known non-zero values...")
 
             sorted_history = sorted(all_points, key=lambda x: x['ts'], reverse=True)
 
-            for param in sensor_map.values():
+            for param in list(sensor_map.values()) + ["o3"]:
                 for pt in sorted_history:
                     if pt['param'] == param and pt['val'] > 0:
                         current_comps[param] = pt['val']
@@ -209,8 +242,8 @@ async def get_zone_data(zone_id: str, zone_name: str, lat: float, lon: float, zo
 
     try:
         if zone_id == "srinagar":
-            fetched_data = await fetch_openaq_srinagar(zone_type=zone_type)
-            source_name = "openaq (official cpcb)"
+            fetched_data = await fetch_openaq_srinagar(lat, lon, zone_type=zone_type)
+            source_name = "openaq (official cpcb) + openmeteo (o3)"
         else:
             fetched_data = await fetch_openmeteo_live(lat, lon, zone_type)
             source_name = "openmeteo air pollution api"
