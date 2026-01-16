@@ -68,7 +68,7 @@ def _get_merged_history(zone_id: str, om_points: List[Dict[str, Any]]) -> List[D
     final_history = []
     
     for ts in sorted_times:
-        if ts < start_ts or ts > now_ts + 3600: 
+        if ts < start_ts or ts > now_ts:
             continue # Skip old data or future data
             
         hour_comps = history_buckets[ts]
