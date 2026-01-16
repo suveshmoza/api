@@ -51,17 +51,40 @@ def _get_merged_history(zone_id: str, om_points: List[Dict[str, Any]]) -> List[D
         if ts not in history_buckets: history_buckets[ts] = {}
         history_buckets[ts][pt['param']] = pt['val']
 
-    for pt in local_data:
-        dt = datetime.fromtimestamp(pt["ts"])
-        if dt.minute >= 30: dt += timedelta(hours=1)
-        hour_ts = dt.replace(minute=0, second=0, microsecond=0).timestamp()
+    if local_data:
+        for ts in history_buckets:
+            history_buckets[ts].pop("pm2_5", None)
+            history_buckets[ts].pop("pm10", None)
+
+        local_data.sort(key=lambda x: x["ts"])
+        for pt in local_data:
+            dt = datetime.fromtimestamp(pt["ts"])
+            if dt.minute >= 30: dt += timedelta(hours=1)
+            hour_ts = dt.replace(minute=0, second=0, microsecond=0).timestamp()
+            
+            if hour_ts not in history_buckets: history_buckets[hour_ts] = {}
+
+            history_buckets[hour_ts]["pm2_5"] = pt["pm2_5"]
+            history_buckets[hour_ts]["pm10"] = pt["pm10"]
+
+        sorted_times = sorted(history_buckets.keys())
         
-        if hour_ts not in history_buckets: history_buckets[hour_ts] = {}
-        history_buckets[hour_ts]["pm2_5"] = pt["pm2_5"]
-        history_buckets[hour_ts]["pm10"] = pt["pm10"]
+        for param in ["pm2_5", "pm10"]:
+            known = [(t, history_buckets[t][param]) for t in sorted_times if param in history_buckets[t]]
+            
+            if len(known) > 1:
+                for i in range(len(known) - 1):
+                    t1, v1 = known[i]
+                    t2, v2 = known[i+1]
+
+                    for ts in sorted_times:
+                        if t1 < ts < t2:
+                            # Linear Interpolation
+                            fraction = (ts - t1) / (t2 - t1)
+                            val = v1 + (v2 - v1) * fraction
+                            history_buckets[ts][param] = val
 
     sorted_times = sorted(history_buckets.keys())
-
     now_ts = datetime.now().timestamp()
     start_ts = now_ts - (24 * 3600)
     
@@ -69,13 +92,13 @@ def _get_merged_history(zone_id: str, om_points: List[Dict[str, Any]]) -> List[D
     
     for ts in sorted_times:
         if ts < start_ts or ts > now_ts:
-            continue # Skip old data or future data
+            continue 
             
         hour_comps = history_buckets[ts]
         try:
-            aqi_res = calculate_overall_aqi(hour_comps, zone_type="urban") # Defaulting to urban strictly for calc
+            aqi_res = calculate_overall_aqi(hour_comps, zone_type="urban")
             final_history.append({
-                "ts": ts,
+                "ts": int(ts), # Android needs Int
                 "aqi": aqi_res["aqi"]
             })
         except:
