@@ -98,7 +98,7 @@ async def fetch_airgradient_srinagar(lat: float, lon: float, zone_type: str = "h
         "hourly": "ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide",
         "timezone": "auto",
         "timeformat": "unixtime",
-        "past_days": 1 
+        "past_days": 1
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
